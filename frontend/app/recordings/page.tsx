@@ -768,11 +768,23 @@ export default function RecordingsPage() {
                           <div className="flex gap-2">
                             <input
                               type="url"
-                              placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/... or Shorts link"
+                              placeholder="Paste YouTube link here..."
                               value={youtubeUrl}
                               onChange={(e) => {
-                                setYoutubeUrl(e.target.value);
-                                if (youtubeInfo) setYoutubeInfo(null);
+                                const val = e.target.value;
+                                setYoutubeUrl(val);
+                                if ((val.includes("youtube.com/") || val.includes("youtu.be/")) && val.length > 15) {
+                                  handleFetchYouTubeInfo(val);
+                                } else if (!val && youtubeInfo) {
+                                  setYoutubeInfo(null);
+                                }
+                              }}
+                              onPaste={(e) => {
+                                const pasted = e.clipboardData.getData("text")?.trim();
+                                if (pasted && (pasted.includes("youtube.com/") || pasted.includes("youtu.be/"))) {
+                                  setYoutubeUrl(pasted);
+                                  handleFetchYouTubeInfo(pasted);
+                                }
                               }}
                               className="flex-1 px-3 py-2 text-xs rounded-lg bg-surface-2 border border-border text-text-primary focus:outline-none focus:border-red-500 font-mono"
                               required

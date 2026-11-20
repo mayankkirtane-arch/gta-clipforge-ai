@@ -244,7 +244,7 @@ class YouTubeService:
 
         ydl_opts = self._get_base_ydl_opts()
         ydl_opts.update({
-            'format': 'bestvideo*+bestaudio/best',
+            'format': '18/bestvideo*+bestaudio/best',
             'merge_output_format': 'mp4',
             'outtmpl': str(recordings_dir / 'yt_%(id)s.%(ext)s'),
             'restrictfilenames': True,
