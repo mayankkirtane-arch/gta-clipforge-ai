@@ -72,16 +72,23 @@ class YouTubeService:
         self._lock = threading.Lock()
 
     def _get_base_ydl_opts(self) -> Dict[str, Any]:
-        """Base yt-dlp options configured with Node.js challenge solver and local ffmpeg."""
+        """Base yt-dlp options configured with Mobile player clients to bypass datacenter bot checks."""
+        import shutil
         opts: Dict[str, Any] = {
             'noplaylist': True,
             'quiet': True,
             'no_warnings': True,
-            'ffmpeg_location': str(Path(settings.FFMPEG_PATH).parent),
-            'remote_components': ['ejs:github'],
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios']
+                }
+            },
         }
-        node_bin = Path("C:/Program Files/nodejs/node.exe")
-        if node_bin.exists():
+        ffmpeg_bin = shutil.which("ffmpeg") or settings.FFMPEG_PATH
+        if ffmpeg_bin and Path(ffmpeg_bin).exists():
+            opts['ffmpeg_location'] = str(Path(ffmpeg_bin).parent)
+        node_bin = shutil.which("node") or "C:/Program Files/nodejs/node.exe"
+        if node_bin and Path(node_bin).exists():
             opts['js_runtimes'] = {'node': {'path': str(node_bin)}}
         return opts
 
@@ -237,7 +244,7 @@ class YouTubeService:
 
         ydl_opts = self._get_base_ydl_opts()
         ydl_opts.update({
-            'format': 'bestvideo+bestaudio/best',
+            'format': 'bestvideo*+bestaudio/best',
             'merge_output_format': 'mp4',
             'outtmpl': str(recordings_dir / 'yt_%(id)s.%(ext)s'),
             'restrictfilenames': True,
@@ -251,8 +258,18 @@ class YouTubeService:
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(task.url, download=True)
-                if not info:
-                    raise RuntimeError("Failed to download video: No stream returned.")
+        except Exception as e:
+            if "bot" in str(e).lower() or "sign in" in str(e).lower() or "403" in str(e):
+                task.message = "Bypassing datacenter check with Android stream resolver..."
+                ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
+                ydl_opts['format'] = 'best'
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(task.url, download=True)
+            else:
+                raise
+
+        if not info:
+            raise RuntimeError("Failed to download video: No stream returned.")
 
                 task.title = info.get('title', 'YouTube Video')
                 task.uploader = task.creator_name or info.get('uploader') or info.get('channel') or 'YouTube Creator'
