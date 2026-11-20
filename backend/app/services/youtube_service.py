@@ -256,44 +256,43 @@ class YouTubeService:
         })
 
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(task.url, download=True)
-        except Exception as e:
-            if "bot" in str(e).lower() or "sign in" in str(e).lower() or "403" in str(e):
-                task.message = "Bypassing datacenter check with Android stream resolver..."
-                ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
-                ydl_opts['format'] = 'best'
+            info = None
+            try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(task.url, download=True)
-            else:
-                raise
+            except Exception as e:
+                task.message = "Retrying with mobile Android stream resolver..."
+                ydl_opts['extractor_args'] = {'youtube': {'player_client': ['android']}}
+                ydl_opts['format'] = '18/best'
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(task.url, download=True)
 
-        if not info:
-            raise RuntimeError("Failed to download video: No stream returned.")
+            if not info:
+                raise RuntimeError("Failed to download video: No stream returned.")
 
-                task.title = info.get('title', 'YouTube Video')
-                task.uploader = task.creator_name or info.get('uploader') or info.get('channel') or 'YouTube Creator'
-                task.thumbnail = info.get('thumbnail', '')
-                task.duration_seconds = float(info.get('duration') or 0.0)
+            task.title = info.get('title', 'YouTube Video')
+            task.uploader = task.creator_name or info.get('uploader') or info.get('channel') or 'YouTube Creator'
+            task.thumbnail = info.get('thumbnail', '')
+            task.duration_seconds = float(info.get('duration') or 0.0)
 
-                # Determine final merged file path
-                possible_path = ydl.prepare_filename(info)
-                final_path = Path(possible_path)
-                # If merged into mp4, extension might be .mp4
-                if not final_path.exists():
-                    mp4_variant = final_path.with_suffix('.mp4')
-                    if mp4_variant.exists():
-                        final_path = mp4_variant
-                    elif downloaded_file_path and downloaded_file_path.exists():
-                        final_path = downloaded_file_path
+            # Determine final merged file path
+            possible_path = ydl.prepare_filename(info)
+            final_path = Path(possible_path)
+            # If merged into mp4, extension might be .mp4
+            if not final_path.exists():
+                mp4_variant = final_path.with_suffix('.mp4')
+                if mp4_variant.exists():
+                    final_path = mp4_variant
+                elif downloaded_file_path and downloaded_file_path.exists():
+                    final_path = downloaded_file_path
+                else:
+                    # Find recently created file matching video id in recordings_dir
+                    vid_id = info.get('id', '')
+                    candidates = list(recordings_dir.glob(f"yt_{vid_id}*.*"))
+                    if candidates:
+                        final_path = candidates[0]
                     else:
-                        # Find recently created file matching video id in recordings_dir
-                        vid_id = info.get('id', '')
-                        candidates = list(recordings_dir.glob(f"yt_{vid_id}*.*"))
-                        if candidates:
-                            final_path = candidates[0]
-                        else:
-                            raise FileNotFoundError(f"Downloaded output file not found at {final_path}")
+                        raise FileNotFoundError(f"Downloaded output file not found at {final_path}")
 
             if task._cancelled:
                 task.status = "cancelled"
