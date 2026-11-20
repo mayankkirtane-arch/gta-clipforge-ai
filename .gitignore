@@ -29,17 +29,18 @@ node_modules/
 out/
 
 # Large files (all on D: drive, not in git)
-recordings/
-GTA6_RECORDINGS/
-GTA6_SHORTS/
-GTA6_BEST_MOMENTS/
-GTA6_REPORTS/
-GTA6_EXPORTS/
-bin/
-models/
-temp/
-exports/
-logs/
+/recordings/
+/GTA6_RECORDINGS/
+/GTA6_SHORTS/
+/GTA6_BEST_MOMENTS/
+/GTA6_REPORTS/
+/GTA6_EXPORTS/
+/bin/
+/models/
+/temp/
+/exports/
+/logs/
+/data/
 *.mp4
 *.mkv
 *.mov
