@@ -1,0 +1,16 @@
+.git
+.venv
+backend/.venv
+frontend/node_modules
+frontend/.next
+recordings
+GTA6_RECORDINGS
+GTA6_SHORTS
+exports
+temp
+bin
+data/*.db
+*.mp4
+*.mkv
+*.mov
+*.webm
